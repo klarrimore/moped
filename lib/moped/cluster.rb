@@ -82,6 +82,18 @@ module Moped
       options[:retry_interval]
     end
 
+    # Get the cluster read_preference_method - the method in which to determine where to execute a read.
+    #
+    # @example Get the read_preference_method, in seconds.
+    #   cluster.read_preference_method
+    #
+    # @return [ Object ] The read preference method.
+    #
+    # @since 1.4.2.1
+    def read_preference_method
+      options[:read_preference_method]
+    end
+
     # Initialize the new cluster.
     #
     # @example Initialize the cluster.
