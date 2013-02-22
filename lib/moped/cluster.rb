@@ -122,7 +122,7 @@ module Moped
         read_preference: {
           method: :random,
           weights: []
-        }
+        }.with_indifferent_access
       }.merge(options)
     end
 
