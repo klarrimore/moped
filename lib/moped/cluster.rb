@@ -118,7 +118,8 @@ module Moped
         down_interval: 30,
         max_retries: 20,
         refresh_interval: 300,
-        retry_interval: 0.25
+        retry_interval: 0.25,
+        read_preference_method: :random
       }.merge(options)
     end
 
@@ -255,7 +256,9 @@ module Moped
     #
     # @since 1.0.0
     def with_secondary(retries = max_retries, &block)
-      available_nodes = nodes.shuffle!.partition(&:secondary?).flatten
+      nodes.shuffle! if @options[:read_preference_method] == :random
+
+      available_nodes = nodes.partition(&:secondary?).flatten
 
       while node = available_nodes.shift
         begin
