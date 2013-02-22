@@ -298,13 +298,17 @@ module Moped
     def with_secondary(retries = max_retries, &block)
       available_nodes = nodes.shuffle!.partition(&:secondary?).flatten
 
+      Moped.logger.debug "secondary query with #{available_nodes.length} nodes and '#{read_preference_method}' read_preference"
+
       until available_nodes.empty?
         if read_preference_method == :weight
           node = rand_weighted_node(available_nodes)
-          node ? available_nodes.delete(node) : break
+          node ? available_nodes.delete(node) : return
         else
           node = available_nodes.shift
         end
+
+        Moped.logger.debug "secondary query using #{node.address}, #{available_nodes.length} available_nodes remaining"
 
         begin
           return yield node.apply_auth(auth)
