@@ -84,7 +84,7 @@ module Moped
 
     # Get the cluster read_preference_method - the method in which to determine where to execute a read.
     #
-    # @example Get the read_preference_method, in seconds.
+    # @example Get the read_preference_method, :random, :ordered, or :weighted
     #   cluster.read_preference_method
     #
     # @return [ Object ] The read preference method.
