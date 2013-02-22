@@ -91,7 +91,7 @@ module Moped
     #
     # @since 1.4.2.1
     def read_preference_method
-      options[:read_preference_method]
+      options[:read_preference][:method]
     end
 
     # Initialize the new cluster.
@@ -119,7 +119,10 @@ module Moped
         max_retries: 20,
         refresh_interval: 300,
         retry_interval: 0.25,
-        read_preference_method: :random
+        read_preference: {
+          method: :random,
+          weights: []
+        }
       }.merge(options)
     end
 
