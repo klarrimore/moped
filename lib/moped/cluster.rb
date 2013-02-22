@@ -84,14 +84,50 @@ module Moped
 
     # Get the cluster read_preference_method - the method in which to determine where to execute a read.
     #
-    # @example Get the read_preference_method, :random, :ordered, or :weighted
+    # @example Get the read_preference_method, :random, :ordered, or :weight
     #   cluster.read_preference_method
     #
     # @return [ Object ] The read preference method.
     #
     # @since 1.4.2.1
     def read_preference_method
-      options[:read_preference][:method]
+      options.has_key?(:read_preference) ? options[:read_preference][:method] : :random
+    end
+
+    # Get the cluster read_preference_default_weight - the default_weight of the nodes which determine where to execute a read.
+    #
+    # @example Get the read_preference_default_weight, a hash containing host:weight
+    #   cluster.read_preference_default_weight
+    #
+    # @return [ Object ] The read preference default_weight.
+    #
+    # @since 1.4.2.1
+    def read_preference_default_weight
+      options.has_key?(:read_preference) ? options[:read_preference][:default_weight] : 5
+    end
+
+    # Get the cluster read_preference_weights - the weights of the nodes which determine where to execute a read.
+    #
+    # @example Get the read_preference_weights, a hash containing host:weight
+    #   cluster.read_preference_weights
+    #
+    # @return [ Object ] The read preference weights.
+    #
+    # @since 1.4.2.1
+    def read_preference_weights
+      options.has_key?(:read_preference) ? options[:read_preference][:weights] : {}
+    end
+
+    # Get a node's read_preference_weight - the read_preference weight of a given node.
+    #
+    # @example Get the read_preference_weight, a number representing a node's weight or 1 if none exists
+    #   cluster.read_preference_weight
+    #
+    # @return [ Object ] The read preference weight.
+    #
+    # @since 1.4.2.1
+    def read_preference_weight(node)
+      options.has_key?(:read_preference) && options[:read_preference].has_key?(:weights) ? (options[:read_preference][:weights][node.address] || read_preference_default_weight) : 1
     end
 
     # Initialize the new cluster.
@@ -121,8 +157,9 @@ module Moped
         retry_interval: 0.25,
         read_preference: {
           method: :random,
-          weights: []
-        }.with_indifferent_access
+          default_weight: 5,
+          weights: {}
+        }
       }.merge(options)
     end
 
@@ -259,11 +296,16 @@ module Moped
     #
     # @since 1.0.0
     def with_secondary(retries = max_retries, &block)
-      nodes.shuffle! if @options[:read_preference_method] == :random
+      available_nodes = nodes.shuffle!.partition(&:secondary?).flatten
 
-      available_nodes = nodes.partition(&:secondary?).flatten
+      until available_nodes.empty?
+        if read_preference_method == :weight
+          node = rand_weighted_node(available_nodes)
+          node ? available_nodes.delete(node) : break
+        else
+          node = available_nodes.shift
+        end
 
-      while node = available_nodes.shift
         begin
           return yield node.apply_auth(auth)
         rescue Errors::ConnectionFailure
@@ -284,6 +326,19 @@ module Moped
           "Could not connect to any secondary or primary nodes for replica set #{inspect}"
         )
       end
+    end
+
+    def rand_weighted_node(nodes)
+      node_weights = nodes.collect { |node| {:node => node, :weight => read_preference_weight(node).to_i} }.sort! { |x,y| y[:weight] <=> x[:weight] }
+      total_weight = node_weights.collect { |nw| nw[:weight] }.sum
+      r = rand(1..total_weight)
+
+      node_weights.each { |nw|
+        return nw[:node] if r <= nw[:weight]
+        r = r - nw[:weight]
+      }
+
+      node_weights.select! { |h| h if h[:weight] && h[:weight] != 0 }.shuffle!.first # just in case it didn't already return
     end
 
     def inspect
