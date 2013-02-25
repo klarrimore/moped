@@ -4,6 +4,14 @@
 
 ### Resolved Issues
 
+* \#152 Added `errmsg` "not master" to replica set configuration check.
+  (Christos Trochalakis)
+
+* \#151 Dropping collections now always uses primary. (Christos Trochalakis)
+
+* mongoid/mongoid#2849 Supply proper limit to initial query if either
+  limit or batch_size are provided.
+
 * mongoid/mongoid#2831 Fix node refresh when no peers exist.
 
 ## 1.4.1/1.4.2
