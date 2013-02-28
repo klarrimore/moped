@@ -4,10 +4,17 @@
 
 ### Resolved Issues
 
+* \#156 Collection#drop will raise on any error other than collection
+  does not exist.
+  (Daniel Doubrovkine)
+
 * \#152 Added `errmsg` "not master" to replica set configuration check.
   (Christos Trochalakis)
 
 * \#151 Dropping collections now always uses primary. (Christos Trochalakis)
+
+* \#150 Handle cases where Mongo does not bring back a `query_failure` flag
+  in the reply, but has an error document present.
 
 * mongoid/mongoid#2849 Supply proper limit to initial query if either
   limit or batch_size are provided.
