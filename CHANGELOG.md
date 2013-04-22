@@ -1,5 +1,25 @@
 # Overview
 
+## 1.4.5
+
+### Resolved Issues
+
+* \#174 Check for "unauthorized" in error messages since codes are not always
+  there. (Jon Hyman)
+
+* \#173 Ensure node `refreshed_at` is set even if the node is down, so down nodes
+  don't get hit on every query.
+
+## 1.4.4
+
+### Resolved Issues
+
+* Fixed BSON binary issues on Ruby 2.0.0.
+
+* \#169 Added additional authorization failure codes into reply.
+
+* \#168 Added additional not master checks in replica set reconfiguration.
+
 ## 1.4.3
 
 ### Resolved Issues
