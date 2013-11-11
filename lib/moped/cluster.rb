@@ -212,6 +212,8 @@ module Moped
       refreshed_nodes = []
       seen = {}
 
+      Moped.logger.debug "refreshing nodes"
+
       # Set up a recursive lambda function for refreshing a node and it's peers.
       refresh_node = ->(node) do
         unless seen[node]
@@ -219,6 +221,8 @@ module Moped
 
           # Add the node to the global list of known nodes.
           @nodes << node unless @nodes.include?(node)
+
+          Moped.logger.debug "refreshing #{node.address}"
 
           begin
             node.refresh
@@ -257,6 +261,9 @@ module Moped
     # @since 1.0.0
     def with_primary(retries = max_retries, &block)
       if node = nodes.find(&:primary?)
+
+        Moped.logger.debug "primary query with #{node.address} nodes and '#{read_preference_method}' read_preference"
+
         begin
           node.ensure_primary do
             return yield node.apply_auth(auth)
@@ -335,24 +342,35 @@ module Moped
       end
     end
 
-    def rand_weighted_node(nodes)
-      node_weights = nodes.collect { |node| {:node => node, :weight => read_preference_weight(node).to_i} }.sort! { |x,y| y[:weight] <=> x[:weight] }
-      total_weight = node_weights.collect { |nw| nw[:weight] }.sum
-      r = rand(1..total_weight)
-
-      node_weights.each { |nw|
-        return nw[:node] if r <= nw[:weight]
-        r = r - nw[:weight]
-      }
-
-      node_weights.select! { |h| h if h[:weight] && h[:weight] != 0 }.shuffle!.first # just in case it didn't already return
-    end
-
     def inspect
       "<#{self.class.name} nodes=#{@nodes.inspect}>"
     end
 
     private
+
+    def rand_weighted_node(nodes)
+      weighted_indexes = find_weighted_indexes(nodes)
+      index = pick_index_from_weighted_indexes(weighted_indexes)
+      nodes[index]
+    end
+
+    def find_weighted_indexes(nodes)
+      weighted_indexes = []
+      nodes.each_with_index { |node,i| weighted_indexes << { :index => i, :weight => read_preference_weight(node).to_i } }
+      weighted_indexes.sort! { |x,y| y[:weight] <=> x[:weight] }
+    end
+
+    def pick_index_from_weighted_indexes(weighted_indexes)
+      total_weight = weighted_indexes.inject(0) { |sum,h| sum + h[:weight] }
+      r = rand(1..total_weight)
+
+      weighted_indexes.each { |wi|
+        return wi[:index] if r <= wi[:weight]
+        r = r - wi[:weight]
+      }
+
+      weighted_indexes[rand(0..weighted_indexes.length-1)] # failsafe
+    end
 
     def initialize_copy(_)
       @nodes = @nodes.map(&:dup)
